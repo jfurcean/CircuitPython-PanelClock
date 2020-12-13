@@ -110,7 +110,7 @@ while True:
         minutes = 0
         hours += 1
 
-    # check if 12 hours has passed
+    # check if 12 hours have passed
     if hours == 12:
         hours = 0
 
