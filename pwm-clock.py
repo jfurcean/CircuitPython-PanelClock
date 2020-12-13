@@ -21,7 +21,7 @@ HOUR_OFFSET = 700
 MIN_OFFSET = 2200
 SEC_OFFSET = 500
 
-def get_time_in_seconds():
+def get_curr_time():
     '''
     Reteives time from worldtimeapi.org
     Returns: hours, minutes, seconds of the current time.
@@ -95,7 +95,7 @@ while True:
     if (hours, minutes, seconds) == (0,0,0):
         
         print("\nSyncing Clock...\n")
-        hours, minutes, seconds = get_time_in_seconds()
+        hours, minutes, seconds = get_curr_time()
 
     time.sleep(1)
     seconds += 1
