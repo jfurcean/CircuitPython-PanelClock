@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2020 John Furcean
 # SPDX-License-Identifier: MIT
 
-import time, gc, os
-import adafruit_dotstar
+import time, rtc
 import board
 import feathers2
 import ipaddress
@@ -20,11 +19,13 @@ import pulseio
 HOUR_OFFSET = 700
 MIN_OFFSET = 2200
 SEC_OFFSET = 500
+RTC_CLOCK = rtc.RTC()
 
-def get_curr_time():
+
+def sync_rtc():
     '''
     Reteives time from worldtimeapi.org
-    Returns: hours, minutes, seconds of the current time.
+    Sets RTC_CLOCK
     Modified from: https://gist.github.com/dglaude/29666db218eadae3aa5e0ec0999ad51b
     '''
     status_code = 0
@@ -38,19 +39,18 @@ def get_curr_time():
         print(response)
 
     datetime_str = response.json()['datetime']
+    #print(datetime_str)
     datesplit = datetime_str.split("-")
-    # year = int(datesplit[0])
-    # month = int(datesplit[1])
+    year = int(datesplit[0])
+    month = int(datesplit[1])
     timesplit = datesplit[2].split("T")
-    # mday = int(timesplit[0])
+    mday = int(timesplit[0])
     timesplit = timesplit[1].split(":")
-    
-    # mod by 12 to change from 24 hour (military time) to 12 hours (standard time)
-    hours = int(timesplit[0]) % 12
+    hours = int(timesplit[0])
     minutes = int(timesplit[1])
     seconds = int(float(timesplit[2].split("-")[0]))
+    RTC_CLOCK.datetime =  time.struct_time((year, month, mday, hours, minutes, seconds, 0, 0, False))
 
-    return hours, minutes, seconds
 
 # Get wifi details and more from a secrets.py file
 try:
@@ -95,24 +95,12 @@ while True:
     if (hours%4, minutes, seconds) == (0,0,0):
         
         print("\nSyncing Clock...\n")
-        hours, minutes, seconds = get_curr_time()
+        sync_rtc()
 
-    time.sleep(1)
-    seconds += 1
-    
-    # check if one minute has passed
-    if seconds == 60:
-        seconds = 0
-        minutes += 1
+    hours = (RTC_CLOCK.datetime.tm_hour % 12)
+    minutes = RTC_CLOCK.datetime.tm_min
+    seconds = RTC_CLOCK.datetime.tm_sec
 
-    # check if one hour has passed
-    if minutes == 60:
-        minutes = 0
-        hours += 1
-
-    # check if 12 hours have passed
-    if hours == 12:
-        hours = 0
 
 
     print("%02d:%02d:%02d" % (hours, minutes, seconds))
