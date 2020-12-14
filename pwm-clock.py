@@ -91,8 +91,8 @@ seconds = 0
 
 while True:
 
-    # sync the clock on intitial loop and every 12 hours
-    if (hours, minutes, seconds) == (0,0,0):
+    # sync the clock on intitial loop and every 4 hours
+    if (hours%4, minutes, seconds) == (0,0,0):
         
         print("\nSyncing Clock...\n")
         hours, minutes, seconds = get_curr_time()
