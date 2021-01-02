@@ -9,6 +9,7 @@ import ssl
 import wifi
 import socketpool
 import adafruit_requests
+from adafruit_io.adafruit_io import IO_HTTP, AdafruitIO_RequestError
 
 from digitalio import DigitalInOut, Direction, Pull
 import pulseio
@@ -20,36 +21,6 @@ HOUR_OFFSET = 700
 MIN_OFFSET = 2200
 SEC_OFFSET = 500
 RTC_CLOCK = rtc.RTC()
-
-
-def sync_rtc():
-    '''
-    Reteives time from worldtimeapi.org
-    Sets RTC_CLOCK
-    Modified from: https://gist.github.com/dglaude/29666db218eadae3aa5e0ec0999ad51b
-    '''
-    status_code = 0
-
-    while status_code != 200:
-        print("https://worldtimeapi.org/api/timezone/%s"%secrets["timezone"])
-        response = requests.get("https://worldtimeapi.org/api/timezone/%s"%secrets["timezone"])
-        #response = requests.get("http://worldtimeapi.org/api/timezone/CET")
-        status_code = response.status_code
-        print(status_code)
-        print(response)
-
-    datetime_str = response.json()['datetime']
-    #print(datetime_str)
-    datesplit = datetime_str.split("-")
-    year = int(datesplit[0])
-    month = int(datesplit[1])
-    timesplit = datesplit[2].split("T")
-    mday = int(timesplit[0])
-    timesplit = timesplit[1].split(":")
-    hours = int(timesplit[0])
-    minutes = int(timesplit[1])
-    seconds = int(float(timesplit[2].split("-")[0]))
-    RTC_CLOCK.datetime =  time.struct_time((year, month, mday, hours, minutes, seconds, 0, 0, False))
 
 
 # Get wifi details and more from a secrets.py file
@@ -67,9 +38,12 @@ print("My IP address is", wifi.radio.ipv4_address)
 # Test and debug Connection
 ipv4 = ipaddress.ip_address("8.8.4.4")
 print("Ping google.com: %f ms" % wifi.radio.ping(ipv4))
- 
+
+
 pool = socketpool.SocketPool(wifi.radio)
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
+io = IO_HTTP(secrets['aio_username'], secrets['aio_key'], requests)
+
 
 
 # initialize the 3v panel meters
@@ -93,9 +67,9 @@ while True:
 
     # sync the clock on intitial loop and every 4 hours
     if (hours%4, minutes, seconds) == (0,0,0):
-        
+
         print("\nSyncing Clock...\n")
-        sync_rtc()
+        RTC_CLOCK.datetime = io.receive_time()
 
     hours = (RTC_CLOCK.datetime.tm_hour % 12)
     minutes = RTC_CLOCK.datetime.tm_min
@@ -109,4 +83,3 @@ while True:
     analog_seconds.duty_cycle = int(SEC_OFFSET+seconds*(60500/60))
     analog_minutes.duty_cycle = int(MIN_OFFSET+minutes*(60500/60))
     analog_hours.duty_cycle = int(HOUR_OFFSET+hours*(60500/12))
-
